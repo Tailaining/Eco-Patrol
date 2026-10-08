@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#176b4a">
+  <meta name="description" content="Eco-Patrol — карта эко-проблем Алматы. Отмечайте проблемы, объединяйте соседей и делайте город чище.">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>Eco-Patrol · Чистый город начинается с нас</title>
+  <link rel="icon" href="assets/icons/leaf.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous">
+  <!-- Резерв оформления для просмотра отдельного HTML. Основные стили остаются в css/. -->
+  <!-- PREVIEW_STYLES_START -->
+  <style id="preview-styles">
+/* base.css */
+/* Общие токены: палитру и размеры можно менять в одном месте. */
+:root {
+  --green: #176b4a;
+  --green-dark: #123f2f;
+  --green-light: #edf5ee;
+  --ink: #223c30;
+  --muted: #5f7064;
+  --surface: #fff;
+  --paper: #fafcf7;
+  --border: #e0e8dc;
+  --red: #d76558;
+  --orange: #d99b41;
+  --blue: #688ebb;
+  --radius: 12px;
+  --shadow: 0 6px 24px rgb(30 55 41 / 10%);
+  --header-height: 68px;
+  --panel-width: 340px;
+  --panel-clearance: calc(var(--panel-width) + 48px);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--paper);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; }
+h1, h2, h3, p { margin: 0; }
+button, input, select, textarea { font: inherit; }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+button { color: inherit; cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+a { color: var(--green); }
+button, input, select, textarea { border-radius: var(--radius); }
+input, select, textarea { min-width: 0; }
+textarea { resize: vertical; }
+img, svg { display: block; max-width: 100%; }
+fieldset { padding: 0; margin: 0; border: 0; }
+[hidden] { display: none !important; }
+
+/* Видимый фокус сохраняется и у кнопок, и у нативных элементов формы. */
+:focus-visible { outline: 3px solid #327960; outline-offset: 3px; }
+::selection { color: var(--green-dark); background: #d5ecda; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.skip-link { position: fixed; top: 10px; left: 12px; z-index: 3000; padding: 12px 18px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); transform: translateY(-150%); }
+.skip-link:focus { transform: translateY(0); }
+.eyebrow { color: var(--green); font-size: 9px; font-weight: 700; letter-spacing: 1.4px; line-height: 1.5; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+
+
+/* layout.css */
+/* Карта — основной холст. Панель и инструменты плавают поверх неё. */
+body { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+.app-header { position: relative; z-index: 1400; flex: 0 0 var(--header-height); min-height: var(--header-height); display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 0 24px; border-bottom: 1px solid var(--border); background: var(--surface); }
+.brand-group, .header-actions { display: flex; align-items: center; min-width: 0; gap: 18px; }
+.brand { display: flex; align-items: center; gap: 8px; color: var(--green-dark); text-decoration: none; white-space: nowrap; }
+.brand-mark { display: grid; width: 32px; height: 36px; place-items: center; color: var(--green); }
+.brand-mark svg { width: 32px; height: 32px; }
+.brand-text { font-size: 21px; font-weight: 750; letter-spacing: -.7px; line-height: 1.15; }
+.brand-caption { display: block; padding-top: 4px; font-size: 7px; font-weight: 600; letter-spacing: 1.25px; color: var(--muted); }
+.program-badge { padding-left: 18px; border-left: 1px solid var(--border); color: var(--muted); font-size: 12px; white-space: nowrap; }
+.program-badge > span { color: var(--green); margin-right: 5px; }
+.city-badge { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 11px; white-space: nowrap; }
+.live-dot { width: 6px; height: 6px; border-radius: 50%; background: #4c9b66; box-shadow: 0 0 0 3px #eef5ec; }
+.menu-button { background: #f0f5ed !important; border: 1px solid var(--border) !important; width: 34px !important; height: 34px !important; font-size: 19px !important; }
+.menu-button svg { width: 18px; height: 18px; }
+.app-header .button { min-height: 37px; border-radius: 10px; }
+.app-layout { position: relative; flex: 1 1 auto; min-height: 0; isolation: isolate; }
+.map-section { position: absolute; inset: 0; min-width: 0; min-height: 0; overflow: hidden; background: #e6ece1; }
+.map-canvas { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; font-family: inherit; }
+.map-canvas.is-picking, .map-canvas.is-picking .leaflet-grab { cursor: crosshair; }
+.map-unavailable { display: grid; place-items: center; padding: 140px 30px 100px var(--panel-clearance); color: var(--muted); font-size: 14px; line-height: 1.7; text-align: center; }
+.app-layout.panel-hidden .map-unavailable { padding-left: 30px; }
+
+/* Фиксированные секции панели короткие; список использует всю свободную высоту. */
+.sidebar { position: absolute; z-index: 1000; top: 24px; bottom: 24px; left: 24px; width: var(--panel-width); display: flex; flex-direction: column; min-height: 0; border: 1px solid #e0e8dc; border-radius: 18px; background: var(--paper); box-shadow: 0 12px 40px rgb(29 52 35 / 16%); transition: transform .22s ease, opacity .22s ease, visibility .22s; }
+.sidebar-intro { position: relative; flex-shrink: 0; padding: 21px 20px 17px; }
+.sidebar-intro .eyebrow { padding-right: 22px; font-size: 9px; letter-spacing: 1.2px; }
+.sidebar-intro h1 { margin-top: 7px; font-size: 24px; font-weight: 700; line-height: 1.15; letter-spacing: -.85px; }
+.sidebar-intro p { margin-top: 8px; color: var(--muted); font-size: 11px; line-height: 1.6; }
+.heading-dot { color: var(--green); }
+.close-sidebar { position: absolute; top: 11px; right: 10px; width: 28px !important; height: 28px !important; color: var(--muted) !important; font-size: 22px !important; }
+.stats { flex-shrink: 0; display: grid; grid-template-columns: repeat(4, 1fr); margin: 0 20px 17px; padding: 12px 0; border: 1px solid #e0e9d9; border-radius: 11px; background: #eef4e9; }
+.stat { display: flex; flex-direction: column; align-items: center; gap: 5px; border-right: 1px solid #dce6d4; }
+.stat:last-child { border: 0; }
+.stat strong { font-size: 21px; line-height: 1; font-weight: 650; }
+.stat span { color: var(--muted); font-size: 10px; }
+.stat-new strong { color: #ad5145; }
+.stat-progress strong { color: #946721; }
+.stat-resolved strong { color: var(--green); }
+.filters { flex-shrink: 0; padding: 0 20px 17px; border-bottom: 1px solid var(--border); }
+.section-title, .list-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.section-title h2, .list-heading h2 { font-size: 13px; font-weight: 650; }
+.type-filters { display: flex; flex-wrap: wrap; gap: 7px; margin: 12px 0 13px; }
+.filter-row { display: grid; grid-template-columns: minmax(0, 1fr) 112px; gap: 8px; }
+.list-heading { flex-shrink: 0; padding: 17px 20px 11px; }
+.report-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 0 20px 14px; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #c5d3bf transparent; }
+.report-list::-webkit-scrollbar { width: 5px; }
+.report-list::-webkit-scrollbar-thumb { border-radius: 4px; background: #c5d3bf; }
+.sidebar-footer { flex-shrink: 0; padding: 14px 20px; border-top: 1px solid var(--border); border-radius: 0 0 18px 18px; background: var(--paper); }
+.data-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sidebar-footer p { margin-top: 10px; color: var(--muted); font-size: 9px; text-align: center; }
+.sidebar-footer p > span { margin-right: 5px; }
+.sidebar-backdrop { display: none; }
+.app-layout.panel-hidden .sidebar { transform: translateX(-15px); opacity: 0; visibility: hidden; pointer-events: none; }
+
+/* Отступ от панели освобождает карту и не даёт инструментам перекрывать список. */
+.map-toolbar { position: absolute; z-index: 800; top: 24px; left: var(--panel-clearance); display: flex; gap: 10px; width: min(500px, calc(100% - var(--panel-clearance) - 224px)); transition: left .22s ease; }
+.address-form { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1 1 auto; min-height: 46px; padding: 5px 6px 5px 14px; border: 1px solid #dce6d6; border-radius: 12px; background: var(--surface); box-shadow: var(--shadow); }
+.address-icon { color: var(--muted); font-size: 25px; line-height: 1; }
+.address-form input { flex: 1 1 auto; width: 0; min-width: 0; padding: 5px 0; border: 0; background: transparent; color: var(--ink); font-size: 13px; }
+.address-form input:focus { outline: none; }
+.address-form:focus-within { box-shadow: 0 0 0 2px #327960, var(--shadow); }
+.map-location { flex: 0 0 46px; width: 46px !important; height: 46px !important; border: 1px solid #dce6d6 !important; background: var(--surface) !important; box-shadow: var(--shadow); }
+.map-location svg { width: 22px; height: 22px; }
+.button.map-city { position: absolute; z-index: 800; top: 24px; right: 24px; min-height: 46px; padding: 0 14px !important; border: 1px solid #dce6d6 !important; background: var(--surface); box-shadow: var(--shadow); font-size: 12px !important; }
+.map-city > span:first-child { font-size: 20px; color: var(--green); }
+.map-city-caption { margin-left: 4px; padding-left: 10px; border-left: 1px solid var(--border); color: var(--muted); font-size: 10px; font-weight: 400; }
+.map-bottom { position: absolute; z-index: 800; bottom: 28px; left: var(--panel-clearance); display: flex; flex-direction: column; align-items: flex-start; gap: 10px; max-width: calc(100% - var(--panel-clearance) - 85px); pointer-events: none; transition: left .22s ease; }
+.map-hint { display: flex; align-items: center; gap: 10px; padding: 12px 15px; border: 1px solid #e0e7da; border-radius: 12px; background: rgb(255 255 255 / 96%); box-shadow: var(--shadow); }
+.hint-icon { display: grid; flex: 0 0 30px; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: var(--green-light); color: var(--green); font-size: 23px; }
+.map-hint strong { display: block; font-size: 12px; font-weight: 650; }
+.map-hint div > span { display: block; margin-top: 4px; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.map-legend { display: flex; flex-wrap: wrap; gap: 14px; padding: 9px 12px; border: 1px solid #e0e7da; border-radius: 9px; background: rgb(255 255 255 / 94%); color: var(--muted); box-shadow: var(--shadow); font-size: 10px; }
+.map-legend > span { display: inline-flex; align-items: center; gap: 5px; }
+.legend-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; }
+.dot-dump { background: var(--red); }.dot-bin { background: var(--orange); }.dot-bench { background: var(--blue); }.dot-subbotnik { background: var(--green); }
+.app-layout.panel-hidden .map-toolbar { left: 24px; width: min(500px, calc(100% - 248px)); }
+.app-layout.panel-hidden .map-bottom { left: 24px; max-width: calc(100% - 109px); }
+.preview-notice { position: absolute; z-index: 850; right: 24px; bottom: 110px; width: min(320px, calc(100% - 48px)); padding: 13px 15px; border: 1px solid #dbe6d3; border-left: 3px solid var(--green); border-radius: 12px; background: rgb(250 252 247 / 97%); box-shadow: var(--shadow); }
+.preview-notice strong { display: block; margin-bottom: 4px; color: var(--green-dark); font-size: 12px; }
+.preview-notice > span { color: var(--muted); font-size: 11px; line-height: 1.6; }
+.preview-notice code { color: var(--green-dark); font-size: 11px; }
+
+@media (max-width: 1180px) {
+  .program-badge { display: none; }
+  .header-actions { gap: 10px; }
+  .map-toolbar { width: min(500px, calc(100% - var(--panel-clearance) - 24px)); }
+  .button.map-city { top: 84px; }
+}
+@media (max-width: 960px) {
+  .city-badge { display: none; }
+}
+@media (max-width: 900px) {
+  .app-header { padding: 0 20px; }
+  .brand-group { gap: 11px; }
+  .app-layout .sidebar { top: 16px; bottom: 16px; left: 16px; width: min(340px, calc(100% - 32px)); z-index: 1200; transform: translateX(calc(-100% - 20px)); opacity: 0; visibility: hidden; pointer-events: none; }
+  .app-layout .sidebar.is-open { transform: translateX(0); opacity: 1; visibility: visible; pointer-events: auto; }
+  .sidebar-backdrop { position: absolute; inset: 0; z-index: 1100; width: 100%; border: 0; border-radius: 0; background: rgb(16 38 28 / 28%); }
+  .sidebar.is-open + .sidebar-backdrop { display: block; }
+  .map-toolbar, .app-layout.panel-hidden .map-toolbar { left: 20px; width: min(500px, calc(100% - 240px)); }
+  .button.map-city { top: 24px; right: 20px; }
+  .map-bottom, .app-layout.panel-hidden .map-bottom { left: 20px; max-width: calc(100% - 105px); }
+  .map-unavailable, .app-layout.panel-hidden .map-unavailable { padding-left: 30px; }
+}
+@media (max-width: 600px) {
+  :root { --header-height: 96px; }
+  .app-header { align-content: center; flex-wrap: wrap; padding: 8px 16px; gap: 8px; }
+  .brand-group { width: 100%; gap: 10px; }
+  .brand-mark { width: 27px; height: 29px; }
+  .brand-mark svg { width: 27px; height: 27px; }
+  .brand-text { font-size: 18px; }
+  .brand-caption { padding-top: 3px; font-size: 6px; letter-spacing: 1.1px; }
+  .menu-button { width: 29px !important; height: 29px !important; font-size: 17px !important; }
+  .header-actions { width: 100%; display: grid; grid-template-columns: 1.08fr 1fr; gap: 8px; }
+  .header-actions .button { min-height: 34px; padding: 0 8px; font-size: 10px; }
+  .plus-icon { font-size: 18px !important; }
+  .app-layout .sidebar { top: 12px; bottom: 12px; left: 12px; width: calc(100% - 24px); max-width: 340px; }
+  .sidebar-intro { padding: 19px 18px 15px; }
+  .sidebar-intro h1 { font-size: 23px; }
+  .stats { margin: 0 18px 15px; padding: 11px 0; }
+  .filters { padding: 0 18px 15px; }
+  .list-heading { padding: 15px 18px 11px; }
+  .report-list { padding: 0 18px 12px; }
+  .sidebar-footer { padding: 12px 18px; }
+  .map-toolbar, .app-layout.panel-hidden .map-toolbar { top: 16px; left: 15px; right: 15px; width: auto; gap: 8px; }
+  .address-form { padding-left: 11px; gap: 7px; }
+  .address-form input { font-size: 12px; }
+  .address-form .button { padding: 0 11px; }
+  .button.map-city { top: 76px; right: 15px; min-height: 36px; padding: 0 11px !important; font-size: 11px !important; }
+  .map-city-caption { font-size: 9px; }
+  .map-bottom, .app-layout.panel-hidden .map-bottom { left: 15px; right: 66px; bottom: 27px; max-width: none; gap: 9px; }
+  .map-hint { width: 100%; padding: 10px 11px; gap: 8px; }
+  .hint-icon { flex-basis: 26px; width: 26px; height: 26px; font-size: 20px; }
+  .map-hint strong { font-size: 11px; }
+  .map-hint div > span { font-size: 9px; margin-top: 3px; }
+  .map-legend { padding: 8px 10px; gap: 10px; font-size: 9px; max-width: calc(100vw - 30px); width: max-content; }
+  .preview-notice { right: 15px; left: 15px; bottom: 148px; width: auto; }
+}
+/* Небольшие экраны сохраняют место для списка и доступ к кнопкам. */
+@media (max-height: 740px) {
+  .sidebar-intro { padding-top: 15px; padding-bottom: 12px; }
+  .sidebar-intro p { display: none; }
+  .stats { padding: 9px 0; margin-bottom: 12px; }
+  .filters { padding-bottom: 12px; }
+  .type-filters { margin: 10px 0 11px; gap: 6px; }
+  .list-heading { padding-top: 12px; padding-bottom: 9px; }
+  .sidebar-footer { padding-top: 10px; padding-bottom: 10px; }
+  .sidebar-footer p { margin-top: 7px; }
+}
+@media (max-height: 580px) {
+  .sidebar { overflow-y: auto; }
+  .report-list { flex: 1 0 155px; }
+  .map-hint { display: none; }
+}
+
+
+/* components.css */
+/* Кнопки и формы одинаково выглядят в панели, popup и dialog. */
+.button { display: inline-flex; justify-content: center; align-items: center; gap: 8px; min-height: 42px; padding: 0 17px; border: 1px solid transparent; background: transparent; font-size: 12px; font-weight: 600; line-height: 1.3; white-space: nowrap; transition: background .15s, border-color .15s, box-shadow .15s; }
+.button-primary { color: #fff; background: var(--green); }
+.button-primary:hover { background: var(--green-dark); }
+.button-primary:disabled { background: #a4baaa; }
+.button-soft { background: #edf4ea; color: var(--green-dark); border-color: #e2ebdd; }
+.button-soft:hover { background: #e1eddd; }
+.button-outline { color: var(--muted); border-color: #dfe6da; background: var(--surface); }
+.button-outline:hover { border-color: #aac5a8; background: #f4f8f0; }
+.button-small { min-height: 33px; padding: 0 12px; font-size: 11px; gap: 6px; }
+.button-danger { color: #994139; background: #faeeeb; border-color: #f4ddd8; }
+.button-danger:hover { background: #f4ddd8; }
+.button:disabled { opacity: .7; }
+.plus-icon { font-size: 22px; font-weight: 400; line-height: 1; }
+.icon-button { display: inline-flex; justify-content: center; align-items: center; flex-shrink: 0; width: 36px; height: 36px; padding: 0; border: 0; background: transparent; color: var(--green); font-size: 21px; line-height: 1; }
+.icon-button:hover { background: var(--green-light); }
+.text-button { border: 0; border-radius: 5px; padding: 3px; color: var(--green); background: transparent; font-size: 11px; font-weight: 500; }
+.text-button:hover { text-decoration: underline; }
+.filter-chip { position: relative; cursor: pointer; }
+/* Чекбокс остаётся в tab-порядке: визуальное оформление находится в span. */
+.filter-chip input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.filter-chip > span { display: inline-flex; align-items: center; gap: 5px; min-height: 29px; padding: 0 9px; border: 1px solid var(--border); border-radius: 7px; background: #fff; color: var(--muted); font-size: 11px; transition: background .15s, color .15s, border-color .15s; }
+.filter-chip i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.filter-chip input:checked + span { color: var(--chip-color); background: var(--chip-bg); border-color: var(--chip-border); }
+.filter-chip input:focus-visible + span { outline: 3px solid #327960; outline-offset: 3px; }
+.chip-dump { --chip-color: #9c493f; --chip-bg: #fbefeb; --chip-border: #f0d9d1; }
+.chip-bin { --chip-color: #805b1f; --chip-bg: #fbf3e5; --chip-border: #eddfc2; }
+.chip-bench { --chip-color: #44698d; --chip-bg: #edf3f8; --chip-border: #d7e3ee; }
+.chip-subbotnik { --chip-color: #30643e; --chip-bg: #edf5e9; --chip-border: #d8e7d0; }
+.search-field { display: flex; align-items: center; gap: 7px; min-width: 0; min-height: 35px; padding: 0 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.search-field > span:first-child { font-size: 22px; line-height: 1; color: #8d9b8d; }
+.search-field input { width: 100%; border: 0; border-radius: 0; background: transparent; padding: 8px 0; color: var(--ink); font-size: 11px; }
+.search-field input:focus { outline: none; }
+.search-field:focus-within { border-color: var(--green); box-shadow: 0 0 0 2px #dfecdf; }
+.status-field select { width: 100%; min-height: 35px; padding: 0 7px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: #66776a; font-size: 11px; }
+input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
+.count-badge { padding: 3px 7px; border: 1px solid #e1e7db; border-radius: 6px; background: #f1f5ed; color: var(--muted); font-size: 9px; }
+.report-card { display: block; width: 100%; margin-bottom: 10px; padding: 13px 14px; border: 1px solid #e1e7db; border-radius: var(--radius); background: var(--surface); text-align: left; transition: border-color .15s, box-shadow .15s, background .15s; }
+.report-card:last-child { margin-bottom: 0; }
+.report-card:hover { border-color: #a9c5a1; background: #fefffc; box-shadow: 0 3px 12px rgb(41 67 34 / 5%); }
+.card-top, .card-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.card-type { font-size: 11px; font-weight: 600; }
+.card-arrow { color: #9ba797; font-size: 14px; }
+.report-card h3 { margin: 8px 0 5px; font-size: 14px; font-weight: 650; line-height: 1.4; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.card-address { color: var(--muted); font-size: 11px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+.card-bottom { margin-top: 12px; }
+.card-bottom time, .popup-meta time { color: var(--muted); font-size: 10px; }
+.type-dump { color: #9c493f; }.type-bin { color: #805b1f; }.type-bench { color: #44698d; }.type-subbotnik { color: #30643e; }
+.status-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 6px; border-radius: 5px; font-size: 10px; font-weight: 600; line-height: 1.3; }
+.status-badge::before { content: ""; width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
+.status-new { color: #9c493f; background: #fbefea; }
+.status-in_progress { color: #805b1f; background: #faf3e5; }
+.status-resolved { color: #30643e; background: #edf5e8; }
+.empty-state { padding: 32px 10px; text-align: center; }
+.empty-icon { display: block; font-size: 30px; margin-bottom: 13px; }
+.empty-state h3 { font-size: 13px; line-height: 1.6; }
+.empty-state p { margin-top: 9px; color: var(--muted); font-size: 11px; line-height: 1.7; }
+
+/* Пульс анимирует псевдоэлемент, не transform самого Leaflet-маркера. */
+.eco-marker-shell { border: 0; background: transparent; }
+.eco-marker { position: relative; display: grid; place-items: center; width: 38px; height: 38px; background: var(--marker-color, var(--green)); border: 3px solid #fff; border-radius: 50%; box-shadow: 0 3px 8px rgb(29 51 38 / 25%); }
+.eco-marker::after { content: ""; position: absolute; z-index: -1; left: 11px; top: 27px; width: 11px; height: 11px; background: var(--marker-color, var(--green)); border-right: 3px solid #fff; border-bottom: 3px solid #fff; transform: rotate(45deg); border-radius: 0 0 3px 0; }
+.eco-marker > span { position: relative; z-index: 1; font-size: 17px; line-height: 1; }
+.marker-subbotnik::before { content: ""; position: absolute; inset: -5px; z-index: -2; border: 2px solid #418757; border-radius: 50%; animation: marker-pulse 2.4s ease-out infinite; }
+.marker-temporary { border-style: dashed; }
+.marker-temporary::after { border-style: dashed; }
+@keyframes marker-pulse { 0% { transform: scale(.9); opacity: .65; } 75%, 100% { transform: scale(1.7); opacity: 0; } }
+.leaflet-container { font-family: inherit; }
+.leaflet-control-zoom { margin-right: 23px !important; margin-bottom: 28px !important; border: 1px solid #e0e6da !important; border-radius: 10px !important; box-shadow: var(--shadow) !important; overflow: hidden; }
+.leaflet-control-zoom a { width: 34px !important; height: 34px !important; line-height: 33px !important; color: #41604a !important; font-weight: 400 !important; border-color: #e5eadd !important; }
+.leaflet-control-attribution { font-size: 9px; background: rgb(255 255 255 / 85%) !important; }
+.leaflet-popup-content-wrapper { border: 1px solid #e1e7da; border-radius: var(--radius); box-shadow: 0 8px 35px rgb(26 53 36 / 16%); }
+.leaflet-popup-content { margin: 17px 18px; max-width: min(310px, calc(100vw - 70px)); }
+.leaflet-container a.leaflet-popup-close-button { top: 5px; right: 5px; color: #7c8978; }
+.map-popup { overflow-wrap: anywhere; }
+.popup-type { display: block; padding-right: 10px; font-size: 11px; font-weight: 600; }
+.map-popup h3 { margin-top: 9px; font-size: 16px; line-height: 1.35; font-weight: 650; }
+.popup-photo { width: 100%; max-height: 190px; margin-top: 13px; border-radius: 8px; object-fit: cover; }
+.leaflet-popup-content .popup-description { margin: 11px 0; color: #667363; font-size: 12px; line-height: 1.65; white-space: pre-wrap; max-height: 130px; overflow-y: auto; }
+.leaflet-popup-content .popup-address { margin: 11px 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.popup-meta { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.popup-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+.popup-actions .button { font-size: 10px; }
+
+/* Нативный dialog сам обеспечивает слой поверх карты и клавиатурный фокус. */
+.modal { width: min(520px, calc(100% - 32px)); max-height: 92vh; max-height: 92dvh; margin: auto; padding: 28px; overflow-y: auto; overscroll-behavior: contain; color: var(--ink); border: 1px solid #e1e7da; border-radius: 18px; box-shadow: 0 18px 80px rgb(13 37 24 / 20%); background: var(--paper); }
+.modal::backdrop { background: rgb(18 40 28 / 48%); backdrop-filter: blur(3px); }
+.modal-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 15px; }
+.modal-heading h2 { margin-top: 7px; font-size: 25px; line-height: 1.3; font-weight: 650; letter-spacing: -.6px; }
+.modal-heading .icon-button { margin: -6px -7px 0 0; color: #73866e; font-size: 27px; }
+.selected-location { margin: 15px 0 22px; padding: 11px 13px; color: var(--muted); background: #eff4e9; border: 1px solid #e1e9d8; border-radius: 8px; font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
+.form-field { margin-bottom: 16px; }
+.form-field > label, .field-label-row label, #demo-form > label { display: block; margin-bottom: 7px; color: #43563d; font-size: 12px; font-weight: 600; }
+.form-field input:not([type="file"]), .form-field select, .form-field textarea, #demo-address { width: 100%; padding: 11px 12px; border: 1px solid #dfe6d6; border-radius: 8px; background: var(--surface); color: var(--ink); font-size: 14px; line-height: 1.5; }
+.form-field select { height: 42px; }
+.form-field textarea { min-height: 83px; }
+.required-mark { color: #a14d43; }
+.optional { font-size: 10px; font-weight: 400; margin-left: 5px; color: var(--muted); }
+.field-label-row { display: flex; justify-content: space-between; gap: 10px; }
+.field-label-row > span { font-size: 10px; color: var(--muted); }
+.field-error { margin-top: 5px; color: #b84e44; font-size: 11px; line-height: 1.5; }
+.field-error:empty { display: none; }
+[aria-invalid="true"] { border-color: #c6695a !important; }
+.photo-upload { position: relative; display: flex !important; align-items: center; flex-wrap: wrap; gap: 5px 10px; padding: 13px 15px; border: 1px dashed #cbd9c0; border-radius: 9px; background: #f4f7ee; cursor: pointer; overflow: hidden; }
+.photo-upload:hover { border-color: #7d9c6c; background: #eef4e7; }
+.photo-upload:focus-within { outline: 3px solid #327960; outline-offset: 3px; }
+.upload-icon { display: grid; place-items: center; font-size: 25px; color: #769767; }
+.photo-upload > span:not(.upload-icon) { font-size: 11px; font-weight: 600; }
+.photo-upload small { width: 100%; padding-left: 32px; font-size: 9px; color: var(--muted); font-weight: 400; }
+.photo-upload input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.photo-preview-wrap { display: flex; align-items: flex-start; gap: 12px; margin-top: 8px; }
+.photo-preview { width: 100px; height: 70px; border-radius: 8px; object-fit: cover; }
+.photo-preview[hidden] + button { display: none; }
+.form-footer { display: flex; justify-content: flex-end; gap: 10px; padding-top: 6px; }
+.demo-modal { position: relative; width: min(550px, calc(100% - 32px)); padding: 37px 42px; text-align: center; }
+.demo-close { position: absolute; top: 14px; right: 14px; font-size: 27px; }
+.demo-symbol { display: grid; place-items: center; width: 72px; height: 72px; margin: 0 auto 18px; border-radius: 24px; background: #eef4e4; font-size: 41px; }
+.demo-modal h2 { margin: 12px 0 16px; font-size: 41px; line-height: 1.13; letter-spacing: -1.2px; font-weight: 650; }
+.demo-intro { color: var(--muted); font-size: 12px; line-height: 1.7; }
+#demo-form { margin-top: 26px; text-align: left; }
+#demo-address { font-size: 14px; }
+#demo-submit { width: 100%; margin-top: 14px; min-height: 44px; }
+.demo-note { margin-top: 18px; color: var(--muted); font-size: 10px; }
+.toasts { position: fixed; z-index: 2200; right: 24px; top: calc(var(--header-height) + 20px); display: flex; flex-direction: column; align-items: flex-end; gap: 9px; width: min(360px, calc(100% - 32px)); pointer-events: none; }
+.toast { display: flex; align-items: flex-start; gap: 10px; width: 100%; padding: 15px; color: #35513b; border: 1px solid #dbe7d4; border-radius: var(--radius); background: #fff; box-shadow: 0 8px 25px rgb(31 55 38 / 14%); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; pointer-events: auto; animation: toast-enter .2s ease-out; }
+.toast > span:nth-child(2) { flex: 1; min-width: 0; }
+.toast-icon { display: grid; place-items: center; flex: 0 0 21px; height: 21px; border-radius: 50%; background: #edf5e7; color: var(--green); font-size: 12px; font-weight: 700; }
+.toast-error { border-color: #efdad4; color: #8e4d41; }
+.toast-error .toast-icon { background: #faebe5; color: #b95448; }
+.toast-close { flex: 0 0 20px; width: 20px; padding: 0; border: 0; background: transparent; color: #8c9a84; font-size: 19px; line-height: 1; }
+@keyframes toast-enter { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+.noscript-notice { position: fixed; z-index: 2500; bottom: 20px; left: 50%; width: min(470px, calc(100% - 32px)); transform: translateX(-50%); padding: 16px; background: #fff7e9; color: #805d2b; border: 1px solid #ebd6b2; border-radius: var(--radius); box-shadow: var(--shadow); }
+
+@media (max-width: 600px) {
+  .modal { padding: 22px 20px; border-radius: 15px; }
+  .modal-heading h2 { font-size: 23px; }
+  .modal .eyebrow { font-size: 8px; letter-spacing: 1.1px; }
+  .form-field input:not([type="file"]), .form-field select, .form-field textarea, #demo-address { font-size: 16px; }
+  .form-footer .button { padding: 0 13px; font-size: 11px; }
+  .demo-modal { padding: 29px 22px; }
+  .demo-symbol { width: 62px; height: 62px; margin-bottom: 15px; font-size: 35px; }
+  .demo-modal h2 { font-size: 35px; }
+  .demo-intro { font-size: 11px; }
+  .toasts { top: calc(var(--header-height) + 75px); right: 16px; }
+  .leaflet-control-zoom { margin-right: 15px !important; margin-bottom: 26px !important; }
+  .leaflet-control-attribution { font-size: 8px; }
+}
+
+  </style>
+  <!-- PREVIEW_STYLES_END -->
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous" defer></script>
+  <script src="js/file-preview.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#sidebar">Перейти к списку меток</a>
+  <header class="app-header">
+    <div class="brand-group">
+      <button id="menu-button" class="icon-button menu-button" type="button" aria-label="Показать или скрыть метки" aria-controls="sidebar" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3" stroke="currentColor" stroke-width="1.7"/><path d="M9 4v16" stroke="currentColor" stroke-width="1.7"/></svg></button>
+      <a class="brand" href="./" aria-label="Eco-Patrol — главная">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M25 6C12 4 5 10 7 19c2 8 16 9 18-13Z" fill="currentColor"/><path d="m10 25 10-13M14 20l-1-5M17 17l5-1" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+        <span class="brand-text">Eco-Patrol<span class="brand-caption">КАРТА ДОБРЫХ ПЕРЕМЕН</span></span>
+      </a>
+      <span class="program-badge"><span aria-hidden="true">✦</span> Таза Қазақстан</span>
+    </div>
+    <div class="header-actions">
+      <span class="city-badge"><span class="live-dot" aria-hidden="true"></span> Алматы, Казахстан</span>
+      <button id="demo-button" class="button button-soft demo-button" type="button">🎤 Демо: спросить зал</button>
+      <button id="add-button" class="button button-primary" type="button"><span class="plus-icon" aria-hidden="true">+</span> Добавить метку</button>
+    </div>
+  </header>
+
+  <main class="app-layout">
+    <aside id="sidebar" class="sidebar" aria-label="Список и фильтры меток">
+      <div class="sidebar-intro">
+        <div class="eyebrow">ЭКО-ПРОБЛЕМЫ АЛМАТЫ</div>
+        <button id="close-sidebar" class="icon-button close-sidebar" type="button" aria-label="Свернуть панель">×</button>
+        <h1>Карта нашего города<span class="heading-dot">.</span></h1>
+        <p>Отметьте проблему. Начните перемены.</p>
+      </div>
+      <div class="stats" aria-label="Счётчики всех меток">
+        <div class="stat"><strong id="count-total">0</strong><span>Всего</span></div>
+        <div class="stat stat-new"><strong id="count-new">0</strong><span>Новых</span></div>
+        <div class="stat stat-progress"><strong id="count-in_progress">0</strong><span>В работе</span></div>
+        <div class="stat stat-resolved"><strong id="count-resolved">0</strong><span>Решено</span></div>
+      </div>
+      <section class="filters" aria-label="Фильтры меток">
+        <div class="section-title"><h2>Что на карте</h2><button id="reset-filters" class="text-button" type="button">Сбросить</button></div>
+        <fieldset class="type-filters">
+          <legend class="sr-only">Тип проблемы</legend>
+          <label class="filter-chip chip-dump"><input type="checkbox" name="type-filter" value="dump" checked><span><i aria-hidden="true"></i> Свалки</span></label>
+          <label class="filter-chip chip-bin"><input type="checkbox" name="type-filter" value="bin" checked><span><i aria-hidden="true"></i> Урны</span></label>
+          <label class="filter-chip chip-bench"><input type="checkbox" name="type-filter" value="bench" checked><span><i aria-hidden="true"></i> Скамейки</span></label>
+          <label class="filter-chip chip-subbotnik"><input type="checkbox" name="type-filter" value="subbotnik" checked><span><i aria-hidden="true"></i> Субботники</span></label>
+        </fieldset>
+        <div class="filter-row">
+          <label class="search-field"><span aria-hidden="true">⌕</span><span class="sr-only">Поиск по меткам</span><input id="text-search" type="search" placeholder="Поиск по меткам…" autocomplete="off"></label>
+          <label class="status-field"><span class="sr-only">Статус</span><select id="status-filter"><option value="all">Все статусы</option><option value="new">Новые</option><option value="in_progress">В работе</option><option value="resolved">Решённые</option></select></label>
+        </div>
+      </section>
+      <div class="list-heading"><h2>Метки города</h2><span id="visible-count" class="count-badge">0 из 0</span></div>
+      <div id="report-list" class="report-list" aria-label="Метки города"></div>
+      <footer class="sidebar-footer">
+        <div class="data-actions"><button id="export-button" class="button button-outline button-small" type="button"><span aria-hidden="true">↓</span> Экспорт JSON</button><button id="import-button" class="button button-outline button-small" type="button"><span aria-hidden="true">↑</span> Импорт JSON</button></div>
+        <input id="import-file" type="file" accept="application/json,.json" hidden>
+        <p><span aria-hidden="true">⌁</span> Метки хранятся только в вашем браузере</p>
+      </footer>
+    </aside>
+    <button id="sidebar-backdrop" class="sidebar-backdrop" type="button" aria-label="Закрыть панель меток" tabindex="-1"></button>
+    <section class="map-section" aria-label="Интерактивная карта Алматы">
+      <div id="map" class="map-canvas" aria-label="Карта: кликните, чтобы добавить метку"></div>
+      <div id="file-preview-notice" class="preview-notice" role="status" hidden><strong>Предпросмотр карты</strong><span>Для добавления меток запустите <code>python start.py</code> в папке проекта.</span></div>
+      <div class="map-toolbar">
+        <form id="address-form" class="address-form" role="search">
+          <span class="address-icon" aria-hidden="true">⌕</span><label class="sr-only" for="address-search">Найти адрес в Казахстане</label><input id="address-search" type="search" placeholder="Город, улица, дом…" autocomplete="off" maxlength="250"><button id="address-submit" class="button button-primary button-small" type="submit">Найти</button>
+        </form>
+        <button id="location-button" class="icon-button map-location" type="button" aria-label="Моё местоположение" title="Моё местоположение"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="6.5" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="2" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button>
+      </div>
+      <button id="home-button" class="button map-city" type="button" aria-label="Вернуться к Алматы"><span aria-hidden="true">⌖</span> Алматы <span class="map-city-caption">Весь город</span></button>
+      <div class="map-bottom">
+        <div class="map-hint"><span class="hint-icon" aria-hidden="true">+</span><div><strong>Ваш город. Ваша забота.</strong><span>Кликните по карте, чтобы отметить проблему</span></div></div>
+        <div class="map-legend" aria-label="Легенда карты"><span><i class="legend-dot dot-dump"></i>Свалка</span><span><i class="legend-dot dot-bin"></i>Урна</span><span><i class="legend-dot dot-bench"></i>Скамейка</span><span><i class="legend-dot dot-subbotnik"></i>Субботник</span></div>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="report-dialog" class="modal report-modal" aria-labelledby="report-dialog-title">
+    <div class="modal-heading"><div><span class="eyebrow">ПЕРВЫЙ ШАГ К ПЕРЕМЕНАМ</span><h2 id="report-dialog-title">Добавить метку</h2></div><button id="close-report" class="icon-button" type="button" aria-label="Закрыть форму">×</button></div>
+    <p id="selected-location" class="selected-location"></p>
+    <form id="report-form" novalidate>
+      <div class="form-field"><label for="report-type">Тип проблемы</label><select id="report-type" name="type"></select></div>
+      <div class="form-field"><label for="report-title">Заголовок <span class="required-mark">*</span></label><input id="report-title" name="title" type="text" minlength="3" maxlength="60" required placeholder="Например, мусор у детской площадки" aria-describedby="report-title-error"><p id="report-title-error" class="field-error" aria-live="polite"></p></div>
+      <div class="form-field"><div class="field-label-row"><label for="report-description">Описание</label><span id="description-count">0 / 500</span></div><textarea id="report-description" name="description" rows="3" maxlength="500" placeholder="Расскажите, что случилось и как найти это место" aria-describedby="report-description-error"></textarea><p id="report-description-error" class="field-error" aria-live="polite"></p></div>
+      <div class="form-field"><label for="report-photo">Фотография <span class="optional">необязательно</span></label><label class="photo-upload" for="report-photo"><span class="upload-icon" aria-hidden="true">▧</span><span id="photo-label">Выбрать фото</span><small>До 10 МБ · автоматически сожмём до 800 px</small><input id="report-photo" type="file" accept="image/*" aria-describedby="report-photo-error"></label><div class="photo-preview-wrap"><img id="photo-preview" class="photo-preview" alt="Превью выбранной фотографии" hidden><button id="remove-photo" class="text-button" type="button">Убрать фото</button></div><p id="report-photo-error" class="field-error" aria-live="polite"></p></div>
+      <div class="form-footer"><button id="cancel-report" class="button button-outline" type="button">Отмена</button><button id="report-submit" class="button button-primary" type="submit" disabled>Сохранить метку</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="demo-dialog" class="modal demo-modal" aria-labelledby="demo-title">
+    <button id="close-demo" class="icon-button demo-close" type="button" aria-label="Закрыть демо">×</button>
+    <div class="demo-symbol" aria-hidden="true">🌳</div><span class="eyebrow">ДАВАЙТЕ СДЕЛАЕМ ЭТО ВМЕСТЕ</span><h2 id="demo-title">Где нужен<br>субботник?</h2><p class="demo-intro">Спросите зал. Назовите место.<br>Пусть добрые перемены начнутся здесь.</p>
+    <form id="demo-form" novalidate><label for="demo-address">Назовите адрес</label><input id="demo-address" type="text" placeholder="Алматы, улица Абая, 10" maxlength="250" aria-describedby="demo-error" required><p id="demo-error" class="field-error" aria-live="polite"></p><button id="demo-submit" class="button button-primary" type="submit">Поставить маркер</button></form>
+    <p class="demo-note">Метка сохранится на карте и в вашем браузере</p>
+  </dialog>
+  <script id="preview-reports" type="application/json">[{"id":"seed-1","type":"dump","title":"Мусор у прогулочной дорожки","description":"После выходных остались пакеты и бутылки. Давайте вернём парку чистоту.","lat":43.2587,"lng":76.9488,"address":"Алматы, Центральный парк","photo":null,"status":"new","createdAt":"2026-09-20T09:00:00.000Z"},{"id":"seed-2","type":"bin","title":"Урна переполнена","description":"У входа в сквер нужна уборка. Рядом остановка и много прохожих.","lat":43.252,"lng":76.936,"address":"Алматы, парк 28 гвардейцев-панфиловцев","photo":null,"status":"in_progress","createdAt":"2026-09-21T10:30:00.000Z"},{"id":"seed-3","type":"bench","title":"Сломана доска скамейки","description":"На скамейке возле пешеходной зоны сломано сиденье.","lat":43.2562,"lng":76.929,"address":"Алматы, Арбат","photo":null,"status":"new","createdAt":"2026-09-22T12:00:00.000Z"},{"id":"seed-4","type":"subbotnik","title":"Здесь нужен субботник!","description":"Соберём соседей и приведём в порядок зелёную зону.","lat":43.2292,"lng":76.945,"address":"Алматы, площадь Республики","photo":null,"status":"new","createdAt":"2026-09-23T08:00:00.000Z"},{"id":"seed-5","type":"dump","title":"Двор снова чистый","description":"Жители собрали мусор и передали его на вывоз. Спасибо всем участникам!","lat":43.238,"lng":76.899,"address":"Алматы, улица Байтурсынова","photo":null,"status":"resolved","createdAt":"2026-09-24T15:00:00.000Z"}]</script>
+  <div id="toasts" class="toasts" aria-label="Уведомления"></div>
+  <noscript><div class="noscript-notice">Для работы Eco-Patrol включите JavaScript в браузере.</div></noscript>
+</body>
+</html>
