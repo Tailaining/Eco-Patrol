@@ -1,0 +1,3 @@
+# Netlify публикует готовые HTML/CSS/JS. Команда сборки не нужна.
+[build]
+  publish = "eco-patrol"
