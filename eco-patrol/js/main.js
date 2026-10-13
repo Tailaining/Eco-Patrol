@@ -3,7 +3,6 @@ import { createGeocoder } from './geocoder.js';
 import { getLocation } from './geolocation.js';
 import { initMap } from './map.js';
 import { initUI, toast } from './ui.js';
-import { initDemo } from './demo.js';
 
 /** Точка входа только связывает модули; бизнес-логика и DOM разделены. */
 function bootstrap() {
@@ -27,14 +26,6 @@ function bootstrap() {
     onFilters: next => { filters = next; refresh(); },
     onFocus: id => map?.focus(id),
     onFormClose: () => { ++selectionVersion; map?.clearPreview(); },
-    onImport: data => reports.import(data),
-    onExport: () => {
-      const blob = new Blob([JSON.stringify(reports.list(), null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a'); link.href = url; link.download = `eco-patrol-${new Date().toISOString().slice(0, 10)}.json`;
-      document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-      toast('Метки экспортированы в JSON');
-    },
   });
   filters = ui.filters();
   try { reports.init(); } catch (error) { toast(error.message, 'error'); }
@@ -87,8 +78,6 @@ function bootstrap() {
   });
   document.getElementById('home-button').addEventListener('click', () => map?.home());
   window.addEventListener('resize', () => map?.resize());
-  document.getElementById('demo-button').addEventListener('click', () => { ++selectionVersion; });
-  initDemo({ geocode, createReport: input => reports.create(input), onCreated: showAllAndFocus });
 }
 
 // DOMContentLoaded ждёт также CDN-скрипт Leaflet с defer.

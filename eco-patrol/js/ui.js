@@ -21,7 +21,7 @@ export function openDialog(dialog) { if (!dialog.open) dialog.showModal(); }
 export function closeDialog(dialog) { if (dialog.open) dialog.close(); }
 
 /** Связывает формы, список и фильтры; вся запись проходит через переданные callbacks. */
-export function initUI({ onCreate, onFilters, onFocus, onFormClose, onImport, onExport }) {
+export function initUI({ onCreate, onFilters, onFocus, onFormClose }) {
   document.querySelectorAll('dialog').forEach(modal => modal.addEventListener('close', () => {
     const container = document.getElementById('toasts');
     if (modal.contains(container)) document.body.append(container);
@@ -104,21 +104,6 @@ export function initUI({ onCreate, onFilters, onFocus, onFormClose, onImport, on
   document.getElementById('reset-filters').addEventListener('click', () => {
     document.querySelectorAll('[name="type-filter"]').forEach(input => { input.checked = true; });
     document.getElementById('status-filter').value = 'all'; document.getElementById('text-search').value = ''; onFilters(filters());
-  });
-  document.getElementById('export-button').addEventListener('click', () => onExport());
-  const importInput = document.getElementById('import-file');
-  document.getElementById('import-button').addEventListener('click', () => importInput.click());
-  importInput.addEventListener('change', async () => {
-    const file = importInput.files[0];
-    if (!file) return;
-    try {
-      if (file.size > 20 * 1024 * 1024) throw new Error('Файл импорта слишком большой. Максимум 20 МБ.');
-      const text = await file.text();
-      let data;
-      try { data = JSON.parse(text); } catch { throw new Error('Файл содержит некорректный JSON.'); }
-      const count = await onImport(data); toast(`Импортировано меток: ${count}`);
-    } catch (error) { toast(error.message, 'error'); }
-    finally { importInput.value = ''; }
   });
   const menu = document.getElementById('menu-button');
   const panel = document.getElementById('sidebar');

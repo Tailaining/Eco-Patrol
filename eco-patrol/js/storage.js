@@ -38,7 +38,7 @@ export function saveReports(reports) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(validateReports(reports)));
   } catch (error) {
-    if (error.name === 'QuotaExceededError') throw new Error('Хранилище переполнено. Экспортируйте данные, удалите старые метки или выберите фото меньшего размера.', { cause: error });
+    if (error.name === 'QuotaExceededError') throw new Error('Хранилище переполнено. Удалите старые метки или выберите фото меньшего размера.', { cause: error });
     throw new Error('Не удалось сохранить метки. Разрешите браузеру использовать localStorage.', { cause: error });
   }
 }

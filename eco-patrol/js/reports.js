@@ -10,7 +10,7 @@ export function createReportsService() {
   const list = () => reports.map(report => ({ ...report }));
   const notify = () => listeners.forEach(listener => listener(list()));
   const commit = next => {
-    if (!readable) throw new Error('Хранилище не прочитано. Исправьте сохранённый JSON или восстановите данные импортом.');
+    if (!readable) throw new Error('Сохранённые метки не прочитаны. Проверьте доступ браузера к хранилищу и обновите страницу.');
     saveReports(next); // Сначала запись, затем изменение памяти и интерфейса.
     reports = next;
     notify();

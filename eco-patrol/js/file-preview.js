@@ -30,7 +30,7 @@
     document.getElementById('sidebar-backdrop').addEventListener('click', () => setPanel(false));
     document.getElementById('address-form').addEventListener('submit', event => event.preventDefault());
     // При локальном просмотре изменять данные нельзя: это честно обозначено в интерфейсе.
-    ['add-button', 'demo-button', 'address-submit', 'location-button', 'export-button', 'import-button', 'reset-filters'].forEach(id => {
+    ['add-button', 'address-submit', 'location-button', 'reset-filters'].forEach(id => {
       const button = document.getElementById(id); button.disabled = true; button.title = 'Доступно после запуска через start.py';
     });
     document.querySelectorAll('.filters input, .filters select, #address-search').forEach(input => { input.disabled = true; });
